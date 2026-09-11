@@ -1271,6 +1271,9 @@
 	<target name="package-module-item" description="Package a single module">
 		<echo message="Packaging module ${module_area}/${module_name}" />
 
+		<!-- Keep the Joomla module layout ready for internally linked language files. -->
+		<mkdir dir="${module_dir}/language" />
+
 		<if>
 			<not>
 				<equals arg1="${build.has_pro}" arg2="1" />
@@ -1352,6 +1355,10 @@
 	-->
 	<target name="package-plugin-item" description="Package a single plugin">
 		<echo message="Packaging plugin ${plugin_area}/${plugin_name}" />
+
+		<!-- Keep the Joomla plugin layout ready for internally linked language files. -->
+		<mkdir dir="${plugin_dir}/language" />
+
 		<!-- Determine the name of the XML manifest template file, package file and the fileset reference ID -->
 		<if>
 			<not>

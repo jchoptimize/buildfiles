@@ -575,7 +575,13 @@ The `<delete>` task will be called by Phing after the `depends` targets have com
 
 ### XML file auto-versioning
 
-The XML manifest files for the package, component, plugins, and modules are automatically assigned the build version _as long as_ the current version number does not include the string `git`, `dev`, or `rev` i.e. it's not a development release.
+The XML manifest files for the package, component, plugins, and modules are automatically assigned the build version when it matches `x.y.z` or `x.y.z.a`. Development and pre-release version strings leave the source manifests unchanged.
+
+### Joomla WebAsset versioning
+
+If a repository provides `build/templates/joomla.asset.json`, the common `xml-version` target generates `component/media/joomla.asset.json` from that template on every build. Replaceable `##VERSION##` tokens receive `auto` for development builds and the release version for stable builds.
+
+Stable builds use versions matching `x.y.z` or `x.y.z.a`. During those builds, any `joomla.asset.json` files found below `modules` or `plugins` also receive the stable version. The generated component asset registry should remain ignored by Git, like other generated build files.
 
 ### Language files
 

@@ -63,6 +63,7 @@
 	<taskdef name="GitHubAsset" classname="tasks\GitHubAssetTask" />
 	<taskdef name="GitHubRelease" classname="tasks\GitHubReleaseTask" />
 	<taskdef name="ApplyVersionConstraints" classname="tasks\ApplyVersionConstraintsTask" />
+	<taskdef name="assetversion" classname="tasks\AssetVersionTask" />
 	<taskdef name="arsenvironments" classname="tasks\ArsEnvironmentsTask" />
 	<taskdef name="autoversion" classname="tasks\AutoVersionTask" />
 	<taskdef name="bladeawf" classname="tasks\BladeAwfTask" />
@@ -1014,24 +1015,14 @@
 	<target name="component-packages" depends="xml-version,package-pkg" />
 
 	<!--
-	Modify the XML manifest files applying the build date and version
+	Modify extension manifests applying the build date and version
 	-->
 	<target name="xml-version" depends="setup-properties">
+		<assetversion repository="${dirs.root}" version="${version}" />
 
 		<if>
 			<and>
-				<not>
-					<contains string="${version}" substring="rev"/>
-				</not>
-				<not>
-					<contains string="${version}" substring="dev"/>
-				</not>
-				<not>
-					<contains string="${version}" substring="git"/>
-				</not>
-				<not>
-					<contains string="${version}" substring="svn"/>
-				</not>
+				<matches string="${version}" pattern="^\d+\.\d+\.\d+(\.\d+)?$"/>
 			</and>
 			<then>
 				<xmlversion repository="${dirs.root}" version="${version}" date="${build.date}"/>

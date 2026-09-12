@@ -103,19 +103,6 @@ class XmlVersionTask extends Task
 					echo $result ? "  -- CONVERTED\n" : "  -- (invalid)\n";
 					break;
 
-				case 'json':
-					if ($entry->getBasename() != 'joomla.asset.json')
-					{
-						continue 2;
-					}
-
-					echo $entry->getPathname();
-
-					$result = $this->convertJSON($entry->getPathname());
-
-					echo $result ? "  -- CONVERTED\n" : "  -- (invalid)\n";
-					break;
-
 				default:
 					continue 2;
 			}
@@ -151,29 +138,6 @@ class XmlVersionTask extends Task
 		}
 
 		file_put_contents($filePath, $fileData);
-
-		return true;
-	}
-
-	private function convertJSON(string $filePath)
-	{
-		$fileData = @file($filePath);
-
-		$fileData = array_map(
-			function ($line) {
-				if ((strpos(trim($line), '"version"') === 0)
-				    && (strpos($line, ':') !== false))
-				{
-					$parts    = explode(':', $line, 2);
-					$parts[1] = sprintf('"%s",', $this->version);
-					$line     = implode(': ', $parts);
-				}
-
-				return rtrim($line, "\n\r");
-			}, $fileData
-		);
-
-		file_put_contents($filePath, implode("\n", $fileData));
 
 		return true;
 	}

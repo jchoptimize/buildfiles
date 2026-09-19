@@ -99,7 +99,7 @@
 	number to make a numbered version release, e.g. `phing git -Dversion=1.2.3` to build version 1.2.3
 	-->
 	<target name="git" description="Makes only packages, not the documentation"
-			depends="new-release,setup-properties,version-constraints,component-packages">
+			depends="update-build-meta,new-release,setup-properties,version-constraints,component-packages">
 	</target>
 
 	<!--
@@ -1184,26 +1184,6 @@
 					</filterchain>
 				</copy>
 				<copy file="${dirs.templates}/${build.template_xml}" tofile="${dirs.component}/backend/${build.component}.xml" overwrite="true">
-					<filterchain>
-						<replacetokens begintoken="##" endtoken="##">
-							<token key="DATE" value="${build.date}" />
-							<token key="VERSION" value="${version}" />
-							<token key="PRO" value="${build.is_pro}" />
-							<token key="MINJOOMLA" value="${build.min_joomla}" />
-							<token key="MAXJOOMLA" value="${build.max_joomla}" />
-							<token key="MINWP" value="${build.min_wordpress}" />
-							<token key="MAXWP" value="${build.max_wordpress}" />
-						</replacetokens>
-					</filterchain>
-				</copy>
-			</then>
-		</if>
-
-		<!-- Copy the version.php file -->
-		<if>
-			<available file="${dirs.templates}/version.php" property="completely.ignored" />
-			<then>
-				<copy file="${dirs.templates}/version.php" tofile="${dirs.component}/backend/version.php" overwrite="true">
 					<filterchain>
 						<replacetokens begintoken="##" endtoken="##">
 							<token key="DATE" value="${build.date}" />

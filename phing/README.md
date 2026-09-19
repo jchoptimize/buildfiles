@@ -446,7 +446,7 @@ Before you begin, you need to have the following folder structure in your reposi
 ```
 Repository Root
    +--- build								Phing build files
-   |       +--- templates 					Template XML manifest and version.php files
+   |       +--- templates 					Template XML manifest and build-meta.php files
    +--- component							Component files
    |       +--- backend						Back-end files
    |       |      +--- src                  Namespace root for backend files
@@ -576,6 +576,17 @@ The `<delete>` task will be called by Phing after the `depends` targets have com
 ### XML file auto-versioning
 
 The XML manifest files for the package, component, plugins, and modules are automatically assigned the build version when it matches `x.y.z` or `x.y.z.a`. Development and pre-release version strings leave the source manifests unchanged.
+
+### Build metadata file
+
+The version and build date can be written to a generated PHP file on every build, so nothing has to be committed after a version bump. The feature is opt-in and does nothing unless the repository has both:
+
+1. A template at `build/templates/build-meta.php`. The `##VERSION##` and `##DATE##` tokens are replaced with the build's version and date, and the template normally returns them as an array.
+2. A `buildmeta.destination` property in `build/build.properties`, giving the path the generated file is written to.
+
+The common `update-build-meta` target generates the file, and the common `git` target runs it first. Repositories that override `git` need to add `update-build-meta` to its `depends` list themselves. Keep the destination in `.gitignore`.
+
+`${dirs.component}/backend/build-meta.php` works for a class that reads the file directly. To have the component's `services/provider.php` load the data instead, for example into `$_ENV`, use `${dirs.component}/backend/services/build-meta.php`. The `services` folder is packaged by the component manifest, so no extra `<filename>` entry is needed.
 
 ### Joomla WebAsset versioning
 

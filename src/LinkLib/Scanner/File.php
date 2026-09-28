@@ -106,7 +106,16 @@ class File extends AbstractScanner
 				}
 			}
 
-			$extension    = new File($path, $languageRoot);
+			try
+			{
+				$extension = new File($path, $languageRoot);
+			}
+			// Skip folders without a manifest, e.g. leftovers containing only ignored files
+			catch (ManifestNotFoundException $e)
+			{
+				continue;
+			}
+
 			$extensions[] = $extension;
 		}
 

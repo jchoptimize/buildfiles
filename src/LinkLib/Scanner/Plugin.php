@@ -215,7 +215,16 @@ class Plugin extends AbstractScanner
 				}
 
 				// Get the extension ScannerInterface object
-				$extension    = new Plugin($pluginFolder->getRealPath(), $languageRoot);
+				try
+				{
+					$extension = new Plugin($pluginFolder->getRealPath(), $languageRoot);
+				}
+				// Skip folders without a manifest, e.g. leftovers containing only ignored files
+				catch (ManifestNotFoundException $e)
+				{
+					continue;
+				}
+
 				$extensions[] = $extension;
 			}
 		}

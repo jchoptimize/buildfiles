@@ -650,7 +650,7 @@ abstract class AbstractScanner implements ScannerInterface
 
 		if (is_null($this->xmlManifest))
 		{
-			throw new RuntimeException("Cannot find manifest for extension in $this->extensionRoot // $this->manifestExtensionType");
+			throw new ManifestNotFoundException("Cannot find manifest for extension in $this->extensionRoot // $this->manifestExtensionType");
 		}
 
 		return $this->xmlManifest;

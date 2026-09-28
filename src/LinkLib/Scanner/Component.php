@@ -232,7 +232,15 @@ class Component extends AbstractScanner
 		}
 
 		// Get the extension ScannerInterface object
-		$extension = new Component($path, $languageRoot);
+		try
+		{
+			$extension = new Component($path, $languageRoot);
+		}
+		// Skip a component folder without a manifest, e.g. one whose manifest is generated during the build
+		catch (ManifestNotFoundException $e)
+		{
+			return [];
+		}
 
 		return [$extension];
 	}

@@ -218,7 +218,16 @@ class Library extends AbstractScanner
 			}
 
 			// Get the extension ScannerInterface object
-			$extension    = new Library($folder->getRealPath(), $languageRoot);
+			try
+			{
+				$extension = new Library($folder->getRealPath(), $languageRoot);
+			}
+			// Skip folders without a manifest, e.g. leftovers containing only ignored files
+			catch (ManifestNotFoundException $e)
+			{
+				continue;
+			}
+
 			$extensions[] = $extension;
 		}
 

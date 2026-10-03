@@ -323,8 +323,9 @@ class AutoVersionTask extends \Phing\Task
 		}
 
 		$mainVersion = rtrim($matches[1], '.');
-		$stability   = $matches[4];
-		$patch       = ltrim($matches[6], '-');
+		// Trailing optional groups which did not participate in the match are absent from $matches
+		$stability   = $matches[4] ?? '';
+		$patch       = ltrim($matches[6] ?? '', '-');
 
 		if (empty($stability) && preg_match('/(a|alpha|b|beta|rc|dev)\d/', $patch))
 		{

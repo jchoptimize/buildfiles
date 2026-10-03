@@ -586,7 +586,36 @@ The version and build date can be written to a generated PHP file on every build
 
 The common `update-build-meta` target generates the file, and the common `git` target runs it first. Repositories that override `git` need to add `update-build-meta` to its `depends` list themselves. Keep the destination in `.gitignore`.
 
-`${dirs.component}/backend/build-meta.php` works for a class that reads the file directly. To have the component's `services/provider.php` load the data instead, for example into `$_ENV`, use `${dirs.component}/backend/services/build-meta.php`. The `services` folder is packaged by the component manifest, so no extra `<filename>` entry is needed.
+The recommended destination is `${dirs.component}/backend/build-meta.php`:
+
+```properties
+buildmeta.destination=${dirs.component}/backend/build-meta.php
+```
+
+List it in the administrator `<files>` section of the component manifest template, so it is packaged with the component:
+
+```xml
+<files folder="backend">
+    <filename>build-meta.php</filename>
+    ...
+</files>
+```
+
+Load it from the component's `services/provider.php`, for example into `$_ENV`, where a class such as `Service\Version` can read it. The file only exists in built packages, so the loader must do nothing when it is missing, and the reading class must fall back to development values:
+
+```php
+$file = __DIR__ . '/../build-meta.php';
+
+if (is_file($file) && is_array($buildMeta = require $file)) {
+    foreach ($buildMeta as $key => $value) {
+        if (is_string($key) && is_string($value)) {
+            $_ENV[$key] = $value;
+        }
+    }
+}
+```
+
+The provider only runs when the component is booted. Modules that show the build data outside the component's own pages, such as a dashboard module on a `com_cpanel` dashboard, must call `bootComponent()` for the component first.
 
 ### Joomla WebAsset versioning
 
@@ -610,6 +639,8 @@ Plugin and module language files are stored in the `language/LANG-CODE` folder o
 It is very tedious making changes, building a package, install it on a dev site, and see if your changes worked. Instead, things go faster if you can simply create symbolic links (symlinks) in a dev site pointing back to your extension's repository. This is what the `relink` task does.
 
 For the `relink` task to work, your repository layout must be as described in the introduction above. Language files must be in the locations explained above.
+
+The component is identified from its XML manifest. When the manifest is generated during the build and `component/` doesn't have one yet, as in a fresh checkout, the linker reads the component manifest template in `build/templates` instead, so the component's language files are linked, and packaged, from the very first build.
 
 You can relink to any local site using:
 

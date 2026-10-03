@@ -206,6 +206,43 @@ class Component extends AbstractScanner
 	}
 
 	/**
+	 * Return the XML manifest for this component.
+	 *
+	 * The component manifest is usually generated from build/templates during the build, so a fresh checkout has none
+	 * in the component folder yet. Fall back to the manifest template, so the language files and folders it declares
+	 * can be linked before the first build. Paths in the manifest stay relative to the component folder.
+	 *
+	 * @param   string|null  $forceFilename  Force an XML manifest filename to load (WITHOUT path).
+	 *
+	 * @return  DOMDocument|null
+	 */
+	protected function getXMLManifest(?string $forceFilename = null): ?DOMDocument
+	{
+		try
+		{
+			return parent::getXMLManifest($forceFilename);
+		}
+		catch (ManifestNotFoundException $e)
+		{
+			$templatesRoot = dirname($this->extensionRoot) . '/build/templates';
+
+			if (!is_dir($templatesRoot))
+			{
+				throw $e;
+			}
+
+			$this->xmlManifest = $this->findXmlManifest($templatesRoot, $this->manifestExtensionType);
+
+			if (is_null($this->xmlManifest))
+			{
+				throw $e;
+			}
+
+			return $this->xmlManifest;
+		}
+	}
+
+	/**
 	 * Detect extensions of type Component in the repository and return an array of ScannerInterface objects for them.
 	 *
 	 * @param   string  $repositoryRoot  The repository root to scan

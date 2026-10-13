@@ -22,12 +22,16 @@ final class InstallationScript
 		$workDir   = realpath(__DIR__ . '/../..');
 		$targetDir = $workDir . '/phing/bin/dbxsl';
 
-		if (@is_dir($targetDir))
+		// An empty folder is left behind when an earlier download failed
+		if (@is_file($targetDir . '/VERSION.xsl'))
 		{
 			return;
 		}
 
-		mkdir($targetDir, 0755, true);
+		if (!@is_dir($targetDir))
+		{
+			mkdir($targetDir, 0755, true);
+		}
 
 		$zipFile = self::downloadDbXslSource($event);
 
@@ -59,14 +63,25 @@ final class InstallationScript
 		$source   = $extras['dbxsl']['source'];
 		$baseName = basename($source);
 
-		$target = $workDir . '/cache/' . $baseName;
+		$cacheDir = $workDir . '/cache';
+		$target   = $cacheDir . '/' . $baseName;
 
 		if (is_file($target))
 		{
 			return $target;
 		}
 
-		file_put_contents($target, file_get_contents($source));
+		if (!@is_dir($cacheDir))
+		{
+			mkdir($cacheDir, 0755, true);
+		}
+
+		$contents = file_get_contents($source);
+
+		if ($contents === false || file_put_contents($target, $contents) === false)
+		{
+			throw new \RuntimeException(sprintf('Cannot download the DocBook XSL stylesheets from %s', $source));
+		}
 
 		return $target;
 	}

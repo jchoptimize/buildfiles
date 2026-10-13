@@ -69,6 +69,7 @@
 	<taskdef name="bladeawf" classname="tasks\BladeAwfTask" />
 	<taskdef name="curlsftp" classname="tasks\CurlSftpTask" />
 	<taskdef name="docbook2epub" classname="tasks\DocBookToEpubTask" />
+	<taskdef name="docbook2html" classname="tasks\DocBookToHtmlTask" />
 	<taskdef name="gitdate" classname="tasks\GitDateTask" />
 	<taskdef name="gitversion" classname="tasks\GitVersionTask" />
 	<taskdef name="jpa" classname="tasks\JPATask" />
@@ -399,7 +400,14 @@
         <delete dir="${docs.epubdir}" quiet="true" />
     </target>
 
+	<!--
+	Renders a DocBook XML file to chunked HTML and zips it, with its images, as release/<name>-import.zip
+
+	docs.input      DocBook XML filename relative to dirs.documentation
+	-->
 	<target name="docbook-zip" description="Render documentation in a ZIP file format">
+		<fail unless="docs.input" message="Set docs.input to the DocBook XML file, relative to ${dirs.documentation} (e.g. -Ddocs.input=book.xml)" />
+
 		<!-- Output file -->
 		<basename property="docs.output" file="${docs.input}" suffix=".xml" />
 		<!-- Images parent folder (images are stored in its /images subdirectory) -->
@@ -415,65 +423,78 @@
 		<!-- Copy image files -->
 		<copy todir="${docs.workdir}/images" haltonerror="false">
 			<fileset dir="${docs.images}/images">
-				<include name="*.png" />
-				<include name="*.jpg" />
-				<include name="*.jpeg" />
-				<include name="*.gif" />
+				<include name="**/*.png" />
+				<include name="**/*.jpg" />
+				<include name="**/*.jpeg" />
+				<include name="**/*.gif" />
+				<include name="**/*.svg" />
 			</fileset>
 		</copy>
 
-		<exec executable="${docs.xsltproc}" dir="${dirs.documentation}" checkreturn="true">
-			<arg value="--nonet" />
-			<arg value="--xinclude" />
-			<arg value="--novalid" />
+		<if>
+			<equals arg1="${docs.php_xsltproc}" arg2="1"/>
+			<then>
+				<!-- Use the xsl extension of your current PHP installation -->
+				<docbook2html xsltRoot="${dirs.bin.dbxsl}"
+							  docBookFile="${dirs.documentation}/${docs.input}"
+							  outputDir="${docs.workdir}"
+				/>
+			</then>
+			<else>
+				<exec executable="${docs.xsltproc}" dir="${dirs.documentation}" checkreturn="true">
+					<arg value="--nonet" />
+					<arg value="--xinclude" />
+					<arg value="--novalid" />
 
-			<arg value="--stringparam" />
-			<arg value="body.start.indent" />
-			<arg value="0" />
+					<arg value="--stringparam" />
+					<arg value="body.start.indent" />
+					<arg value="0" />
 
-			<arg value="--stringparam" />
-			<arg value="variablelist.term.break.after" />
-			<arg value="1" />
+					<arg value="--stringparam" />
+					<arg value="variablelist.term.break.after" />
+					<arg value="1" />
 
-			<arg value="--stringparam" />
-			<arg value="variablelist.term.separator" />
-			<arg value="&quot;&quot;" />
+					<arg value="--stringparam" />
+					<arg value="variablelist.term.separator" />
+					<arg value="&quot;&quot;" />
 
-			<arg value="--stringparam" />
-			<arg value="variablelist.max.termlength" />
-			<arg value="12" />
+					<arg value="--stringparam" />
+					<arg value="variablelist.max.termlength" />
+					<arg value="12" />
 
-			<arg value="--stringparam" />
-			<arg value="admon.graphics" />
-			<arg value="0" />
+					<arg value="--stringparam" />
+					<arg value="admon.graphics" />
+					<arg value="0" />
 
-			<arg value="--stringparam" />
-			<arg value="use.id.as.filename" />
-			<arg value="1" />
+					<arg value="--stringparam" />
+					<arg value="use.id.as.filename" />
+					<arg value="1" />
 
-			<arg value="--stringparam" />
-			<arg value="chunk.section.depth" />
-			<arg value="3" />
+					<arg value="--stringparam" />
+					<arg value="chunk.section.depth" />
+					<arg value="3" />
 
-			<arg value="--stringparam" />
-			<arg value="section.autolabel" />
-			<arg value="1" />
+					<arg value="--stringparam" />
+					<arg value="section.autolabel" />
+					<arg value="1" />
 
-			<arg value="--stringparam" />
-			<arg value="toc.section.depth" />
-			<arg value="5" />
+					<arg value="--stringparam" />
+					<arg value="toc.section.depth" />
+					<arg value="5" />
 
-			<arg value="--stringparam" />
-			<arg value="highlight.source" />
-			<arg value="1" />
+					<arg value="--stringparam" />
+					<arg value="highlight.source" />
+					<arg value="1" />
 
-			<arg value="--output" />
-			<arg value="${docs.workdir}/" />
+					<arg value="--output" />
+					<arg value="${docs.workdir}/" />
 
-			<arg file="${dirs.bin.dbxsl}/html/chunk.xsl" />
+					<arg file="${dirs.bin.dbxsl}/html/chunk.xsl" />
 
-			<arg file="${dirs.documentation}/${docs.input}" />
-		</exec>
+					<arg file="${dirs.documentation}/${docs.input}" />
+				</exec>
+			</else>
+		</if>
 
 		<zip destfile="${dirs.release}/${docs.output}-import.zip" basedir="${docs.workdir}">
 			<fileset dir="${docs.workdir}">
@@ -482,6 +503,48 @@
 		</zip>
 
 		<delete dir="${docs.workdir}" quiet="true" />
+	</target>
+
+	<!--
+	Zips the DocBook XML source (book XML, chapters, images, schema) for upload to DocImport, which renders it itself.
+
+	The archive holds the folder's contents at its root, so the book's XML file is at the top, and only the file types
+	DocImport accepts in an upload (others, such as editor backups, are left out).
+
+	docs.source     Folder holding the book, relative to dirs.documentation (default: dirs.documentation itself)
+	docs.zipname    Archive name without extension (default: <build.package_base_name>-documentation)
+	-->
+	<target name="docbook-source-zip" description="Zip the DocBook XML source for upload to DocImport">
+		<property name="docs.source" value="" />
+		<property name="docs.zipname" value="${build.package_base_name}-documentation" />
+		<resolvepath propertyName="docs.sourcedir" file="${dirs.documentation}/${docs.source}" />
+
+		<fail message="No documentation folder at ${docs.sourcedir}">
+			<condition>
+				<not><available file="${docs.sourcedir}" type="dir" /></not>
+			</condition>
+		</fail>
+
+		<mkdir dir="${dirs.release}" />
+		<delete file="${dirs.release}/${docs.zipname}.zip" quiet="true" />
+
+		<zip destfile="${dirs.release}/${docs.zipname}.zip">
+			<fileset dir="${docs.sourcedir}" casesensitive="false">
+				<include name="**/*.xml" />
+				<include name="**/*.xsd" />
+				<include name="**/*.dtd" />
+				<include name="**/*.ent" />
+				<include name="**/*.png" />
+				<include name="**/*.jpg" />
+				<include name="**/*.jpeg" />
+				<include name="**/*.gif" />
+				<include name="**/*.svg" />
+				<include name="**/*.webp" />
+				<include name="**/*.css" />
+				<include name="**/*.txt" />
+				<include name="**/*.pdf" />
+			</fileset>
+		</zip>
 	</target>
 
 	<!--

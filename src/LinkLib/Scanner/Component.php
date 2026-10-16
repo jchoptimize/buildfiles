@@ -81,6 +81,8 @@ class Component extends AbstractScanner
 			$result->mediaFolder      = $this->extensionRoot . '/' . (string) $allMediaTags->item(0)
 					->getAttribute('folder');
 			$result->mediaDestination = $allMediaTags->item(0)->getAttribute('destination');
+
+			[$result->mediaFolders, $result->mediaFiles] = $this->getMediaItems($allMediaTags->item(0));
 		}
 
 		// Do we have a CLI folder -- OBSOLETE; we now scan for File extensions

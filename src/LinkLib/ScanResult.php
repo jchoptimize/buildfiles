@@ -85,6 +85,21 @@ final class ScanResult
 	public $mediaDestination = '';
 
 	/**
+	 * Folders the manifest's <media> tag lists, relative to $mediaFolder. Only these are linked when not empty, so
+	 * anything else the site keeps in its media directory (e.g. user uploads) survives a relink.
+	 *
+	 * @var  string[]
+	 */
+	public $mediaFolders = [];
+
+	/**
+	 * Files the manifest's <media> tag lists, relative to $mediaFolder.
+	 *
+	 * @var  string[]
+	 */
+	public $mediaFiles = [];
+
+	/**
 	 * Absolute path to the folder containing the CLI files for the extension
 	 *
 	 * @var  string

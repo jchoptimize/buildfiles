@@ -276,6 +276,14 @@ abstract class AbstractScanner implements ScannerInterface
 		$files     = $map->files;
 		$hardfiles = $map->hardfiles;
 
+		// A media directory link from an earlier relink goes as a whole; its listed items are not on the site
+		if ($this->detachMediaDestination(false))
+		{
+			$isNotMedia = fn(string $to): bool => strpos($to, $this->getMediaDestination() . '/') !== 0;
+			$dirs       = array_filter($dirs, $isNotMedia);
+			$files      = array_filter($files, $isNotMedia);
+		}
+
 		if (!empty($dirs))
 		{
 			if ($this->verbose)
@@ -351,6 +359,8 @@ abstract class AbstractScanner implements ScannerInterface
 	public final function relink()
 	{
 		$map = $this->getLinkMap();
+
+		$this->detachMediaDestination(true);
 
 		$dirs      = $map->dirs;
 		$files     = $map->files;
@@ -458,6 +468,22 @@ abstract class AbstractScanner implements ScannerInterface
 	{
 		$map = $this->getLinkMap();
 
+		// A media directory link from an earlier relink is copied as a whole, like before
+		if ($this->isMediaDestinationLinked())
+		{
+			if ($this->verbose)
+			{
+				echo "  Copy Media Directory\n";
+				echo "  " . str_repeat('-', 70) . "\n";
+				echo "    " . $this->getMediaDestination() . "\n";
+			}
+
+			if (!$this->dryRun)
+			{
+				LinkHelper::replaceLinkWithCopy($this->getMediaDestination());
+			}
+		}
+
 		$sections = [
 			'Copy Directories'                 => $map->dirs,
 			'Copy Files'                       => $map->files,
@@ -498,6 +524,104 @@ abstract class AbstractScanner implements ScannerInterface
 	}
 
 	/**
+	 * Returns the folders and files a manifest's <media> tag lists, relative to its folder attribute.
+	 *
+	 * @param   \DOMElement  $mediaTag  The <media> tag
+	 *
+	 * @return  array{0: string[], 1: string[]}  The folders and the files
+	 */
+	protected function getMediaItems(\DOMElement $mediaTag): array
+	{
+		$folders = [];
+		$files   = [];
+
+		foreach ($mediaTag->childNodes as $node)
+		{
+			if (!$node instanceof \DOMElement || trim($node->textContent) === '')
+			{
+				continue;
+			}
+
+			if ($node->nodeName === 'folder')
+			{
+				$folders[] = trim($node->textContent, " \t\n\r/");
+			}
+			else
+			{
+				$files[] = trim($node->textContent, " \t\n\r/");
+			}
+		}
+
+		return [$folders, $files];
+	}
+
+	/**
+	 * The site's media directory for this extension.
+	 *
+	 * @return  string
+	 */
+	private function getMediaDestination(): string
+	{
+		$scan = $this->getScanResults();
+
+		return $this->siteRoot . '/media/' . (empty($scan->mediaDestination) ? $scan->getJoomlaExtensionName() : $scan->mediaDestination);
+	}
+
+	/**
+	 * Whether the site's media directory is a link from an earlier relink, which linked the whole directory, while
+	 * the map now links only the items the manifest lists.
+	 *
+	 * @return  bool
+	 */
+	private function isMediaDestinationLinked(): bool
+	{
+		$scan = $this->getScanResults();
+
+		if (!$scan->mediaFolder || (empty($scan->mediaFolders) && empty($scan->mediaFiles)))
+		{
+			return false;
+		}
+
+		return is_link($this->getMediaDestination());
+	}
+
+	/**
+	 * Removes a media directory link left by an earlier relink (see isMediaDestinationLinked()). It has to go before
+	 * the listed items are linked or unlinked: "media/foo/css" reached through it is the repository's own css folder,
+	 * which LinkHelper would delete.
+	 *
+	 * @param   bool  $recreate  Put an empty folder in its place, to link the listed items into
+	 *
+	 * @return  bool  True if there was such a link
+	 */
+	private function detachMediaDestination(bool $recreate): bool
+	{
+		if (!$this->isMediaDestinationLinked())
+		{
+			return false;
+		}
+
+		$destination = $this->getMediaDestination();
+
+		if ($this->verbose)
+		{
+			echo "  Removing the media directory link $destination\n";
+		}
+
+		if (!$this->dryRun)
+		{
+			LinkHelper::unlink($destination);
+
+			if ($recreate)
+			{
+				mkdir($destination, 0755, true);
+			}
+		}
+
+		return true;
+	}
+
+	/**
 	 * Parses the last scan and generates a link map
 	 *
 	 * @return  MapResult
@@ -511,17 +635,31 @@ abstract class AbstractScanner implements ScannerInterface
 		$files     = [];
 		$dirs      = [];
 
-		// Media directory
+		// Media directory: the folders and files the manifest lists, or the whole folder if it lists none
 		if ($scan->mediaFolder)
 		{
-			$destination = $this->siteRoot . '/media/' . $scan->getJoomlaExtensionName();
+			$destination = $this->getMediaDestination();
 
-			if (!empty($scan->mediaDestination))
+			if (empty($scan->mediaFolders) && empty($scan->mediaFiles))
 			{
-				$destination = $this->siteRoot . '/media/' . $scan->mediaDestination;
+				$dirs[$scan->mediaFolder] = $destination;
 			}
 
-			$dirs[$scan->mediaFolder] = $destination;
+			foreach ($scan->mediaFolders as $folder)
+			{
+				if (is_dir($scan->mediaFolder . '/' . $folder))
+				{
+					$dirs[$scan->mediaFolder . '/' . $folder] = $destination . '/' . $folder;
+				}
+			}
+
+			foreach ($scan->mediaFiles as $file)
+			{
+				if (is_file($scan->mediaFolder . '/' . $file))
+				{
+					$files[$scan->mediaFolder . '/' . $file] = $destination . '/' . $file;
+				}
+			}
 		}
 
 		// CLI files

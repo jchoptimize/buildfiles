@@ -81,6 +81,14 @@ interface ScannerInterface
 	public function relink();
 
 	/**
+	 * Replaces the map targets which are links with copies of the files / folders they point to. Targets which are not
+	 * links are left alone.
+	 *
+	 * @return  void
+	 */
+	public function copyLinks();
+
+	/**
 	 * Get a unique extension name. For modules and templates this includes the indicator site_ or admin_ before the
 	 * actual name of the extension.
 	 *

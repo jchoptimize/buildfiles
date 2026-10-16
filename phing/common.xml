@@ -1043,6 +1043,25 @@
     </target>
 
     <!--
+    The reverse of relink: replace the links relink made in a Joomla! installation with copies of the files they point
+    to, so the site no longer depends on the repository (e.g. before moving the site). Folders and files which are not
+    links are left alone.
+
+    site        Absolute filesystem path to the Joomla! installation
+    -->
+    <target name="unrelink" description="Replace the relinked extensions with copies">
+		<!-- Initialize the site variable if it's not set -->
+		<if>
+			<equals arg1="${site}" arg2="" />
+			<then>
+				<property name="site" value="${build.relink_site}" override="true" />
+			</then>
+		</if>
+
+        <relinksite site="${site}" repository="${dirs.root}" copy="true" />
+    </target>
+
+    <!--
     Symlink the plugin to a WordPress installation
 
     site        Absolute filesystem path to the Joomla! installation

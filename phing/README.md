@@ -648,6 +648,12 @@ You can relink to any local site using:
 phing relink -Dsite=/path/to/site/root
 ```
 
+To go the other way, e.g. before moving a site, `unrelink` replaces every link `relink` made with a copy of the files it points to, so no dangling links are left behind once the repository is out of reach. Files and folders which are not links are left alone, so it is safe to run more than once:
+
+```php
+phing unrelink -Dsite=/path/to/site/root
+```
+
 Relinking works on Linux, macOS, and Windows. We strongly recommend usign Linux, macOS, or WSL. Under Windows, symbolic and hard links tend to be a bit problematic and require elevated permissions to create even within your own user folder. 
 
 ### Updating phpStorm

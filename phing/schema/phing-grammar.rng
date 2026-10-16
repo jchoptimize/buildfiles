@@ -4104,6 +4104,9 @@
                 <optional>
                     <attribute name="repository"/>
                 </optional>
+                <optional>
+                    <attribute name="copy"/>
+                </optional>
             </interleave>
         </element>
     </define>

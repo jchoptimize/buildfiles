@@ -448,6 +448,56 @@ abstract class AbstractScanner implements ScannerInterface
 	}
 
 	/**
+	 * Replaces the map targets which are links with copies of the files / folders they point to. The reverse of
+	 * relink(): afterwards the site no longer depends on the repository. Targets which are not links (already copied,
+	 * hard links, or real files / folders) are left alone.
+	 *
+	 * @return  void
+	 */
+	public final function copyLinks()
+	{
+		$map = $this->getLinkMap();
+
+		$sections = [
+			'Copy Directories'                 => $map->dirs,
+			'Copy Files'                       => $map->files,
+			'Copy Files (for hardlink targets)' => $map->hardfiles,
+		];
+
+		foreach ($sections as $title => $items)
+		{
+			if (empty($items))
+			{
+				continue;
+			}
+
+			if ($this->verbose)
+			{
+				echo "  $title\n";
+				echo "  " . str_repeat('-', 70) . "\n";
+			}
+
+			foreach ($items as $from => $to)
+			{
+				if (!is_link($to))
+				{
+					continue;
+				}
+
+				if ($this->verbose)
+				{
+					echo "    $from => $to\n";
+				}
+
+				if (!$this->dryRun)
+				{
+					LinkHelper::replaceLinkWithCopy($to);
+				}
+			}
+		}
+	}
+
+	/**
 	 * Parses the last scan and generates a link map
 	 *
 	 * @return  MapResult

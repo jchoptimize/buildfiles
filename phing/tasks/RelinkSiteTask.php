@@ -21,6 +21,8 @@ use Throwable;
  * Example:
  *
  * <relink site="/Path/To/Your/Site" repository="/path/to/repository" />
+ *
+ * With copy="true" it does the reverse: every link it made is replaced with a copy of the files it points to.
  */
 class RelinkSiteTask extends Task
 {
@@ -39,6 +41,13 @@ class RelinkSiteTask extends Task
 	private $site = null;
 
 	/**
+	 * Replace the links with copies instead of creating them?
+	 *
+	 * @var    bool
+	 */
+	private $copy = false;
+
+	/**
 	 * Set the site root folder
 	 *
 	 * @param   string  $siteRoot  The new site root
@@ -48,6 +57,18 @@ class RelinkSiteTask extends Task
 	public function setSite($siteRoot)
 	{
 		$this->site = $siteRoot;
+	}
+
+	/**
+	 * Replace the links with copies of the files they point to instead of creating them
+	 *
+	 * @param   bool  $copy
+	 *
+	 * @return  void
+	 */
+	public function setCopy(bool $copy)
+	{
+		$this->copy = $copy;
 	}
 
 	/**
@@ -105,7 +126,14 @@ class RelinkSiteTask extends Task
 		{
 			$relink = new Relink($this->repository);
 			$relink->setVerbose(true);
-			$relink->relink($this->site);
+			if ($this->copy)
+			{
+				$relink->copyLinks($this->site);
+			}
+			else
+			{
+				$relink->relink($this->site);
+			}
 		}
 		catch (Throwable $e)
 		{

@@ -220,6 +220,111 @@ abstract class LinkHelper
 	}
 
 	/**
+	 * Replace a symbolic link with a copy of the file or folder it points to.
+	 *
+	 * The copy is made next to the link first and only swapped in once it is complete, so a failure never leaves the
+	 * target missing. Symbolic links inside a copied folder are followed, so the copy has no links left in it. A
+	 * dangling link is left alone with a warning.
+	 *
+	 * @param   string  $link  The symbolic link to replace
+	 *
+	 * @return  void
+	 * @throws  \RuntimeException  If the copy cannot be made or swapped in
+	 */
+	public static function replaceLinkWithCopy(string $link)
+	{
+		$source = realpath($link);
+
+		if ($source === false)
+		{
+			trigger_error("Not copying dangling link $link", E_USER_WARNING);
+
+			return;
+		}
+
+		$temp = dirname($link) . '/.' . basename($link) . '.copy-' . getmypid();
+
+		if (file_exists($temp) || is_link($temp))
+		{
+			self::unlink($temp);
+		}
+
+		try
+		{
+			self::recursiveCopy($source, $temp);
+		}
+		catch (\RuntimeException $e)
+		{
+			if (file_exists($temp))
+			{
+				self::unlink($temp);
+			}
+
+			throw $e;
+		}
+
+		if (!@unlink($link) && !(self::isWindows() && @rmdir($link)))
+		{
+			self::unlink($temp);
+
+			throw new \RuntimeException("Cannot delete link $link");
+		}
+
+		if (!@rename($temp, $link))
+		{
+			throw new \RuntimeException("Cannot move the copy $temp to $link");
+		}
+	}
+
+	/**
+	 * Recursively copy a file or folder, following symbolic links and keeping file permissions.
+	 *
+	 * @param   string  $from  The file or folder to copy
+	 * @param   string  $to    Where the copy goes; must not exist
+	 *
+	 * @return  void
+	 * @throws  \RuntimeException  If something cannot be copied
+	 */
+	public static function recursiveCopy(string $from, string $to)
+	{
+		if (!is_dir($from))
+		{
+			if (!@copy($from, $to))
+			{
+				throw new \RuntimeException("Cannot copy $from to $to");
+			}
+
+			@chmod($to, fileperms($from) & 0777);
+
+			return;
+		}
+
+		if (!@mkdir($to, fileperms($from) & 0777, true) && !is_dir($to))
+		{
+			throw new \RuntimeException("Cannot create folder $to");
+		}
+
+		foreach (new \DirectoryIterator($from) as $file)
+		{
+			if ($file->isDot())
+			{
+				continue;
+			}
+
+			$path = $file->getPathname();
+
+			if (is_link($path) && realpath($path) === false)
+			{
+				trigger_error("Skipping dangling link $path", E_USER_WARNING);
+
+				continue;
+			}
+
+			self::recursiveCopy($path, $to . '/' . $file->getFilename());
+		}
+	}
+
+	/**
 	 * Recursively delete a directory
 	 *
 	 * @param   string  $dir             The directory to remove

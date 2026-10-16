@@ -121,6 +121,28 @@ class Relink
 	}
 
 	/**
+	 * Replace the links relink() made on the given site with copies of the files they point to
+	 *
+	 * @param   string  $siteRoot  The absolute path to the site's root
+	 */
+	public function copyLinks($siteRoot)
+	{
+		foreach ($this->extensions as $extension)
+		{
+			if ($this->verbose)
+			{
+				$extensionTag = $extension->getKeyName();
+				echo "COPY $extensionTag\n";
+			}
+
+			$extension->setSiteRoot($siteRoot);
+			$extension->setVerbose($this->verbose);
+			$extension->setDryRun($this->dryRun);
+			$extension->copyLinks();
+		}
+	}
+
+	/**
 	 * Set the verbosity flag
 	 *
 	 * @param   bool  $verbose

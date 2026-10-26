@@ -51,7 +51,9 @@ class CurlSftpTask extends ScpTask
 	 * @param   string  $localFilename   The full path to the local file
 	 * @param   string  $remoteFilename  The full path to the remote file
 	 *
-	 * @return  boolean  True on success
+	 * @return  void
+	 *
+	 * @throws  BuildException  When the local file can't be read or the upload fails
 	 */
 	public function upload($localFilename, $remoteFilename)
 	{
@@ -59,7 +61,7 @@ class CurlSftpTask extends ScpTask
 
 		if ($fp === false)
 		{
-			throw new RuntimeException("Unreadable local file $localFilename");
+			throw new BuildException("Unreadable local file $localFilename");
 		}
 
 		// Note: don't manually close the file pointer, it's closed automatically by uploadFromHandle
@@ -69,10 +71,13 @@ class CurlSftpTask extends ScpTask
 		}
 		catch (RuntimeException $e)
 		{
-			return false;
+			throw new BuildException(
+				"Could not upload $localFilename to " . $this->host . ":" . $remoteFilename . "! cURL Error "
+				. $e->getCode() . ": " . $e->getMessage(), $e
+			);
 		}
 
-		return true;
+		$this->counter++;
 	}
 
 	/**
@@ -88,7 +93,9 @@ class CurlSftpTask extends ScpTask
 		}
 		catch (RuntimeException $e)
 		{
-			throw new BuildException("Could not establish connection to " . $this->host . ":" . $this->port . "!");
+			throw new BuildException(
+				"Could not establish connection to " . $this->host . ":" . $this->port . "! " . $e->getMessage(), $e
+			);
 		}
 
 		if ($this->file != "")
